@@ -1,0 +1,32 @@
+#pragma once
+#include <cstdint>
+#include <vector>
+
+#include "Order.h"
+#include "OrderList.h"
+#include "OrderPool.h"
+#include "Bitmap.h"
+
+
+struct OrderBook_bitmap {
+    std::vector<OrderList> bid_levels;
+    std::vector<OrderList> ask_levels;
+
+    //Bitmap2Level bid_bitmap;
+    //Bitmap2Level ask_bitmap;
+    Bitmap bid_bitmap;
+    Bitmap ask_bitmap;
+
+    std::vector<Order*> order_index; // contains all orders for reference in cancelation
+
+    int64_t best_bid_level = -1; 
+    int64_t best_ask_level = -1;    
+
+    // price and level are used interchangeably for now.    
+    OrderBook_bitmap(size_t max_price, size_t max_orders)
+        : bid_levels(max_price + 1),  // price levels = max_price + 1 (including 0)
+          ask_levels(max_price + 1),
+          bid_bitmap(max_price + 1),
+          ask_bitmap(max_price + 1),
+          order_index(max_orders, nullptr) {}    
+};
