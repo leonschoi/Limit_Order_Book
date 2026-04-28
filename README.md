@@ -13,34 +13,11 @@ under realistic matching workloads.
 *This project is ongoing; further implementations and comparisons will be published as time permits.*
 
 ---
-<br>
-
-# Overview of the Results
-
-## Normally Distributed (Gaussian) Order Prices
-
-* Order prices follow a Gaussian distribution generated via volatility shocks, drift/noise, and fat-tail adjustments (see [Order Producer Parameters](#order-producer-parameters)).
-* The flat array achieves a **~2.5–3× throughput improvement** over `std::map` by eliminating pointer-heavy tree traversal and leveraging contiguous memory for better cache locality.
-* The bitmap design matches flat array median latency (**p50 ≈ 40 ns**) while slightly improving throughput and reducing tail latency by eliminating linear scans when advancing between price levels.
-* In this regime, performance is dominated by **hot-path operations at the best price**, so all array-based designs converge at the median, with differences emerging primarily in higher percentiles.
-
-
-## Sparse Price Distributions
-
-* To stress worst-case behavior, prices are artificially sparsified (via masking), creating large gaps between active levels.
-* Under these conditions, the flat array’s **O(N) scan for the next non-empty level** introduces significant tail-latency spikes (p999–p9999), while the bitmap maintains near-constant latency using bitwise lookup.
-* As shown in the sparsity curve below, flat array performance degrades rapidly as gaps increase, whereas bitmap latency remains stable and effectively independent of distribution.
-* The `std::map` implementation remains consistently slower due to **O(log N)** operations and poor cache locality, but does not exhibit the same extreme degradation as the flat array under sparsity.
-
-![Sparsity Curve](sparsity_curve.png)
-
-**Result:** Flat arrays optimize for average-case speed, while bitmap indexing ensures predictable, low tail latency across all market conditions.
-
----
 
 <br>
 
 # Table of Contents
+- **[Overview of the Results](#overview-of-the-results)**
 - **[Data Structure Design Comparison](#data-structure-design-comparison)**
     - **[Associative Container](#associative-container-tree-based-book)**
     - **[Flat Array](#flat-array-price-indexed-book)**
@@ -67,14 +44,39 @@ under realistic matching workloads.
         - **[Cache Behavior](#cache-behavior-1)**
         - **[Branch Prediction](#branch-prediction-1)**
 - **[Order Producer Parameters](#order-producer-parameters)**
-    - **[Volatility](#volatility-volparamsh)**
-    - **[Mid-Price](#mid-price-midparamsh)**
-    - **[Fat Tails](#fat-tails-fattailparamsh)**
-    - **[Quantity](#quantity-qtyparamsh)**
-    - **[Order Flow](#order-flow-flowparamsh)**
+    - **[Volatility](#volatility-includeproducer_paramsvolparamsh)**
+    - **[Mid-Price](#mid-price-includeproducer_paramsmidparamsh)**
+    - **[Fat Tails](#fat-tails-includeproducer_paramsfattailparamsh)**
+    - **[Quantity](#quantity-includeproducer_paramsqtyparamsh)**
+    - **[Order Flow](#order-flow-includeproducer_paramsflowparamsh)**
+- **[Usage](#usage)**
 - **[Files](#files)**
 ---
 
+<br>
+
+# Overview of the Results
+
+## Normally Distributed (Gaussian) Order Prices
+
+* Order prices follow a Gaussian distribution generated via volatility shocks, drift/noise, and fat-tail adjustments (see [Order Producer Parameters](#order-producer-parameters)).
+* The flat array achieves a **~2.5–3× throughput improvement** over `std::map` by eliminating pointer-heavy tree traversal and leveraging contiguous memory for better cache locality.
+* The bitmap design matches flat array median latency (**p50 ≈ 40 ns**) while slightly improving throughput and reducing tail latency by eliminating linear scans when advancing between price levels.
+* In this regime, performance is dominated by **hot-path operations at the best price**, so all array-based designs converge at the median, with differences emerging primarily in higher percentiles.
+
+
+## Sparse Price Distributions
+
+* To stress worst-case behavior, prices are artificially sparsified (via masking), creating large gaps between active levels.
+* Under these conditions, the flat array’s **O(N) scan for the next non-empty level** introduces significant tail-latency spikes (p999–p9999), while the bitmap maintains near-constant latency using bitwise lookup.
+* As shown in the sparsity curve below, flat array performance degrades rapidly as gaps increase, whereas bitmap latency remains stable and effectively independent of distribution.
+* The `std::map` implementation remains consistently slower due to **O(log N)** operations and poor cache locality, but does not exhibit the same extreme degradation as the flat array under sparsity.
+
+![Sparsity Curve](sparsity_curve.png)
+
+**Result:** Flat arrays optimize for average-case speed, while bitmap indexing ensures predictable, low tail latency across all market conditions.
+
+---
 <br>
 
 # Data Structure Design Comparison
@@ -883,6 +885,72 @@ Controls the mix of order types entering the book.
 ```cpp
 p_buy = 0.5;
 p_cancel = 0.3;
+```
+
+---
+<br>
+
+# Usage
+
+Run the Limit Order Book benchmark from the build directory:
+
+```bash
+./build/LimitOrderBook [options]
+```
+
+---
+
+## Options
+
+| Option        | Values                           | Default               | Description                    |
+| ------------- | -------------------------------- | --------------------- | ------------------------------ |
+| `--type`      | `assoc`, `flat`, `bitmap`, `all` | `all`                 | Implementation to run          |
+| `--producers` | `<num>`                          | `4`                   | Number of producer threads     |
+| `--messages`  | `<num>`                          | `1,000,000`           | Number of messages to generate |
+| `--pin`       | `true`, `false`                  | `true`                | Pin threads to CPU cores       |
+| `--mid_price` | `<num>`                          | `1000`                | Initial mid price              |
+| `--max_price` | `<num>`                          | `2000`                | Maximum price level            |
+| `--pool_size` | `<num>`                          | `QUEUE_CAPACITY × 10` | Queue pool size                |
+
+---
+
+## Implementations
+
+* `assoc` → `std::map` / `unordered_map` based order book
+* `flat` → Flat array with direct indexing (no hashing)
+* `bitmap` → Flat array + bitmap for fast best bid/ask discovery
+* `all` → Runs all implementations sequentially for benchmarking
+
+---
+
+## Examples
+
+Run all implementations:
+
+```bash
+./LimitOrderBook --type all
+```
+
+Run flat implementation with custom price range:
+
+```bash
+./LimitOrderBook --type flat --mid_price 1000 --max_price 2000
+```
+
+Run bitmap version with tuned workload:
+
+```bash
+./LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
+```
+
+---
+
+## Tip
+
+You can combine flags freely. For example:
+
+```bash
+./LimitOrderBook --type assoc --producers 8 --messages 500000 --pin false
 ```
 
 ---
