@@ -536,7 +536,8 @@ This creates:
 
 This is the clearest demonstration so far of: **O(N) scan vs O(1) lookup**
 
-As gaps increase, the effect becomes more pronounced. Bitmap latency remains stable and effectively independent of distribution.
+As gaps increase, the effect becomes more pronounced.\
+Bitmap latency remains stable and effectively independent of distribution.
 
 ![Sparsity Curve](sparsity_curve.png)
 ---
@@ -908,8 +909,8 @@ Run the Limit Order Book benchmark from the build directory:
 | `--producers` | `<num>`                          | `4`                   | Number of producer threads     |
 | `--messages`  | `<num>`                          | `1,000,000`           | Number of messages to generate |
 | `--pin`       | `true`, `false`                  | `true`                | Pin threads to CPU cores       |
-| `--mid_price` | `<num>`                          | `1000`                | Initial mid price              |
-| `--max_price` | `<num>`                          | `2000`                | Maximum price level            |
+| `--mid_price` | `<num>`                          | `2000`                | Initial mid price              |
+| `--max_price` | `<num>`                          | `4000`                | Maximum price level<br>(maximum 4096 for now)        |
 | `--pool_size` | `<num>`                          | `QUEUE_CAPACITY×10` | Queue pool size                |
 
 ---
@@ -959,8 +960,8 @@ You can combine flags freely. For example:
 # Files
 ## Matching Engines
 - `include/MatchingEngine_assoc_container.h`
-- `include/MatchingEngine_bitmap.h`
 - `include/MatchingEngine_flat_array.h`
+- `include/MatchingEngine_bitmap.h`
 
 ## Order Producer
 - `include/OrderProducer.h`
@@ -973,6 +974,14 @@ You can combine flags freely. For example:
 
 ## Benchmark Function
 - `include/driver/run_benchmark.h`
+
+## Bitmap
+- `include/Bitmap.h`
+
+## Order Books
+- `include/OrderBook_assoc_container.h`
+- `include/OrderBook_flat_array.h`
+- `include/OrderBook_bitmap.h`
 
 ## Queue
 - `include/queue/MPSC_bounded_ring.h`

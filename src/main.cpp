@@ -23,13 +23,13 @@ Options:
     --producers   <num>                           (default: 4)
     --messages    <num>                           (default: 1'000'000)
     --pin         true | false                    (default: true)
-    --mid_price   <num>                           (default: 1'000)
-    --max_price   <num>                           (default: 2'000)
+    --mid_price   <num>                           (default: 2'000)
+    --max_price   <num>                           (default: 4'000)
     --pool_size   <num>                           (default: QUEUE_CAPACITY * 10)
 
 Example:
     ./LimitOrderBook --type all
-    ./LimitOrderBook --type flat --mid_price 1000 --max_price 2000
+    ./LimitOrderBook --type flat --mid_price 2000 --max_price 4000
     ./LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
 
 */
