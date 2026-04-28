@@ -904,13 +904,13 @@ Run the Limit Order Book benchmark from the build directory:
 
 | Option        | Values                           | Default               | Description                    |
 | ------------- | -------------------------------- | --------------------- | ------------------------------ |
-| `--type`      | `assoc`, `flat`, `bitmap`, `all` | `all`                 | Implementation to run          |
+| `--type`      | `assoc`, `flat`,<br>`bitmap`, `all` | `all`                 | Implementation to run          |
 | `--producers` | `<num>`                          | `4`                   | Number of producer threads     |
 | `--messages`  | `<num>`                          | `1,000,000`           | Number of messages to generate |
 | `--pin`       | `true`, `false`                  | `true`                | Pin threads to CPU cores       |
 | `--mid_price` | `<num>`                          | `1000`                | Initial mid price              |
 | `--max_price` | `<num>`                          | `2000`                | Maximum price level            |
-| `--pool_size` | `<num>`                          | `QUEUE_CAPACITY × 10` | Queue pool size                |
+| `--pool_size` | `<num>`                          | `QUEUE_CAPACITY×10` | Queue pool size                |
 
 ---
 
@@ -964,6 +964,15 @@ You can combine flags freely. For example:
 
 ## Order Producer
 - `include/OrderProducer.h`
+- `include/producer_params/ProducerConfig.h`
+- `include/producer_params/FatTailParams.h`
+- `include/producer_params/FlowParams.h`
+- `include/producer_params/MidParams.h`
+- `include/producer_params/QtyParams.h`
+- `include/producer_params/VolParams.h`
 
 ## Benchmark Function
 - `include/driver/run_benchmark.h`
+
+## Queue
+- `include/queue/MPSC_bounded_ring.h`
