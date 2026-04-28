@@ -8,9 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Export compile_commands.json for VS Code
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Set the build type to RelWithDebInfo if not already specified
+# Set the build type to Debug if not already specified
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build." FORCE)
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
 # Add executable

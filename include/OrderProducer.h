@@ -10,7 +10,7 @@
 #include <immintrin.h>
 #include <random>
 
-#include "driver/benchmark.h"
+#include "driver/BenchmarkConfig.h"
 #include "producer_params/ProducerConfig.h"
 #include "queue/MPSC_bounded_ring.h"
 

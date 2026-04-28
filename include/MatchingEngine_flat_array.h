@@ -2,7 +2,7 @@
 #include <immintrin.h>
 
 #include "common/rdtsc.h"
-#include "driver/benchmark.h"
+#include "driver/BenchmarkConfig.h"
 #include "queue/MPSC_bounded_ring.h"
 
 #include "Message.h"

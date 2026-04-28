@@ -12,7 +12,7 @@
 #include "common/constants.h"
 #include "common/rdtsc.h"
 #include "common/pin_thread.h"
-#include "driver/benchmark.h"
+#include "driver/BenchmarkConfig.h"
 #include "queue/MPSC_bounded_ring.h"
 
 #include "Message.h"
@@ -32,7 +32,7 @@ inline uint64_t percentile(vector<uint64_t>& v, size_t size, double p) {
     return v[idx];
 }
 
-
+// Benchmark
 template<typename Q, typename MatchingEngine>
 void run_benchmark(OrderProducer<Q>& producer, MatchingEngine& engine, const BenchmarkConfig& cfg) {
     const int P = cfg.producers;
@@ -69,8 +69,8 @@ void run_benchmark(OrderProducer<Q>& producer, MatchingEngine& engine, const Ben
             
             if (cfg.pin_threads) {
                 pin_thread_physical(threadID_start+producer_id, cpu_map);  
-                //cout << "Producer " << producer_id << " pinned to CPU " << cpu_map[threadID_start+producer_id] << " : ";
-                //cout << "Actual CPU: " << sched_getcpu() << endl;
+                cout << "Producer " << producer_id << " pinned to CPU " << cpu_map[threadID_start+producer_id] << " : ";
+                cout << "Actual CPU: " << sched_getcpu() << endl;
             }
 
             sync.arrive_and_wait();
@@ -92,8 +92,8 @@ void run_benchmark(OrderProducer<Q>& producer, MatchingEngine& engine, const Ben
 
         if (cfg.pin_threads) {
             pin_thread_physical(threadID_start+P, cpu_map); 
-            //cout << "Consumer pinned to CPU " << cpu_map[threadID_start+P] << " : ";
-            //cout << "Actual CPU: " << sched_getcpu() << endl;
+            cout << "Consumer pinned to CPU " << cpu_map[threadID_start+P] << " : ";
+            cout << "Actual CPU: " << sched_getcpu() << endl;
         }        
 
         sync.arrive_and_wait();

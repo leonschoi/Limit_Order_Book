@@ -17,45 +17,46 @@ under realistic matching workloads.
 <br>
 
 # Table of Contents
-- **[Overview of the Results](#overview-of-the-results)**
-- **[Data Structure Design Comparison](#data-structure-design-comparison)**
-    - **[Associative Container](#associative-container-tree-based-book)**
-    - **[Flat Array](#flat-array-price-indexed-book)**
-    - **[Bitmap + Flat Array](#bitmap--flat-array-2-level-bitmap)**
-- **[Benchmark Results](#benchmark-results)**
-    - **[Throughput](#throughput)**
-    - **[Latency](#latency)**
-        - **[Order Entry](#order-entry)**
-        - **[Order Cancel](#order-cancel)**
-        - **[Queue](#queue-end-to-end-backpressure)**
-    - **[perf](#microarchitectural-analysis-perf)**
-        - **[CPU Efficiency](#cpu-efficiency)**
-        - **[Cache Behavior](#cache-behavior)**
-        - **[Branch Prediction](#branch-prediction)**
-    - **[Why Bitmap Improves Tail Latency](#why-bitmap-improves-tail-latency)**
-- **[Benchmark Results (Sparse Price Distribution)](#sparse-price-distribution-benchmark-results)**
-    - **[Throughput](#throughput-1)**
-    - **[Latency](#latency-1)**
-        - **[Order Entry](#order-entry-1)**
-        - **[Order Cancel](#order-cancel-1)**
-        - **[Queue](#queue)**
-    - **[perf](#microarchitectural-analysis-perf-1)**
-        - **[CPU Efficiency](#cpu-efficiency-1)**
-        - **[Cache Behavior](#cache-behavior-1)**
-        - **[Branch Prediction](#branch-prediction-1)**
-- **[Order Producer Parameters](#order-producer-parameters)**
-    - **[Volatility](#volatility-includeproducer_paramsvolparamsh)**
-    - **[Mid-Price](#mid-price-includeproducer_paramsmidparamsh)**
-    - **[Fat Tails](#fat-tails-includeproducer_paramsfattailparamsh)**
-    - **[Quantity](#quantity-includeproducer_paramsqtyparamsh)**
-    - **[Order Flow](#order-flow-includeproducer_paramsflowparamsh)**
-- **[Usage](#usage)**
-- **[Files](#files)**
----
+1. [Overview of the Results](#1-overview-of-the-results)
+2. [Data Structure Design Comparison](#2-data-structure-design-comparison)
+    - [Associative Container](#associative-container-tree-based-book)
+    - [Flat Array](#flat-array-price-indexed-book)
+    - [Bitmap + Flat Array](#bitmap--flat-array-2-level-bitmap)
+3. [Benchmark Results](#3-benchmark-results)
+    - [Throughput](#throughput)
+    - [Latency](#latency)
+        - [Order Entry](#order-entry)
+        - [Order Cancel](#order-cancel)
+        - [Queue](#queue-end-to-end-backpressure)
+    - [perf](#microarchitectural-analysis-perf)
+        - [CPU Efficiency](#cpu-efficiency)
+        - [Cache Behavior](#cache-behavior)
+        - [Branch Prediction](#branch-prediction)
+    - [Why Bitmap Improves Tail Latency](#why-bitmap-improves-tail-latency)
+4. [Benchmark Results (Sparse Price Distribution)](#4-sparse-price-distribution-benchmark-results)
+    - [Throughput](#throughput-1)
+    - [Latency](#latency-1)
+        - [Order Entry](#order-entry-1)
+        - [Order Cancel](#order-cancel-1)
+        - [Queue](#queue)
+    - [perf](#microarchitectural-analysis-perf-1)
+        - [CPU Efficiency](#cpu-efficiency-1)
+        - [Cache Behavior](#cache-behavior-1)
+        - [Branch Prediction](#branch-prediction-1)
+5. [Order Producer Parameters](#5-order-producer-parameters)
+    - [Volatility](#volatility-includeproducer_paramsvolparamsh)
+    - [Mid-Price](#mid-price-includeproducer_paramsmidparamsh)
+    - [Fat Tails](#fat-tails-includeproducer_paramsfattailparamsh)
+    - [Quantity](#quantity-includeproducer_paramsqtyparamsh)
+    - [Order Flow](#order-flow-includeproducer_paramsflowparamsh)
+6. [Setup & Build](#6-setup--build)
+7. [Usage](#7-usage)
+8. [Files](#8-files)
 
+---
 <br>
 
-# Overview of the Results
+# 1. Overview of the Results
 
 ## Normally Distributed (Gaussian) Order Prices
 
@@ -72,14 +73,14 @@ under realistic matching workloads.
 * As shown in the sparsity curve below, flat array performance degrades rapidly as gaps increase, whereas bitmap latency remains stable and effectively independent of distribution.
 * The `std::map` implementation remains consistently slower due to **O(log N)** operations and poor cache locality, but does not exhibit the same extreme degradation as the flat array under sparsity.
 
-![Sparsity Curve](sparsity_curve.png)
+![Sparsity Curve](benchmarks/results/sparsity_curve.png)
 
 **Result:** Flat arrays optimize for average-case speed, while bitmap indexing ensures predictable, low tail latency across all market conditions.
 
 ---
 <br>
 
-# Data Structure Design Comparison
+# 2. Data Structure Design Comparison
 
 
 ## Associative Container (Tree-Based Book)
@@ -112,7 +113,7 @@ struct OrderBook_assoc_container {
 | Find best price | O(1)               |
 | Match traversal | O(log N) per level |
 
-### Insights
+### Observations
 
 * Heavy pointer chasing → poor cache locality
 * Branch-heavy → leads to misprediction
@@ -152,7 +153,7 @@ struct OrderBook_flat_array {
 | Match at best level | O(1)            |
 | Find next level     | O(N) worst-case |
 
-### Insights
+### Observations
 
 * Excellent cache locality due to contiguous memory layout.
 * Minimal branching
@@ -214,7 +215,7 @@ This enables:
 
 ---
 
-### Insights
+### Observations
 
 * Eliminates linear scans entirely
 * Uses **bitwise operations**
@@ -230,7 +231,7 @@ This enables:
 <br>
 
 
-# Benchmark Results
+# 3. Benchmark Results
 
 This section compares three Limit Order Book designs under identical workload conditions:
 
@@ -345,7 +346,7 @@ See the [Order Producer Parameters](#order-producer-parameters) section for all 
 | Instructions | 8.77B | 3.33B | **3.28B** |
 | IPC          | ~1.44 | ~1.50 | **~1.53** |
 
-#### Insight
+#### Observations
 
 * Bitmap executes **~2.7× fewer instructions than `std::map`**
 * Slight IPC improvement → better pipeline utilization
@@ -369,7 +370,7 @@ See the [Order Producer Parameters](#order-producer-parameters) section for all 
 | ------------ | ----- | ----- | --------- |
 | Cache misses | 9.36M | 5.39M | **3.99M** |
 
-#### Insight
+#### Observations
 
 * `std::map`:
   * Massive memory traffic (pointer chasing)
@@ -388,7 +389,7 @@ See the [Order Producer Parameters](#order-producer-parameters) section for all 
 | ------------- | ----- | ----- | --------- |
 | Branch misses | 18.8M | 6.73M | **6.03M** |
 
-#### Insight
+#### Observations
 
 * `std::map`:
   * Tree traversal → unpredictable branches
@@ -442,7 +443,7 @@ best_ask_level = w << 64 + std::countr_zero(level1[w]);
 
 ---
 
-### Insight
+### Observations
 
 - **Flat array optimizes for average case**
 - **Bitmap eliminates worst-case behavior**
@@ -457,7 +458,7 @@ This is confirmed by:
 ---
 <br>
 
-# Sparse Price Distribution Benchmark Results
+# 4. Sparse Price Distribution Benchmark Results
 To simulate **extreme sparsity**, prices were masked with:
 
 ```cpp
@@ -539,7 +540,7 @@ This is the clearest demonstration so far of: **O(N) scan vs O(1) lookup**
 As gaps increase, the effect becomes more pronounced.\
 Bitmap latency remains stable and effectively independent of distribution.
 
-![Sparsity Curve](sparsity_curve.png)
+![Sparsity Curve](benchmarks/results/sparsity_curve.png)
 ---
 
 ## Microarchitectural Analysis (`perf`)
@@ -551,7 +552,7 @@ Bitmap latency remains stable and effectively independent of distribution.
 | Cycles       | 4.39B | 2.15B | **2.11B** |
 | Instructions | 7.03B | 3.45B | **3.22B** |
 
-#### Insight
+#### Observations
 
 * Bitmap executes **~7% fewer instructions than flat**
 * Both are ~2× more efficient than `std::map`
@@ -565,7 +566,7 @@ Bitmap latency remains stable and effectively independent of distribution.
 | Cache misses   | **2.25M** | 3.50M | 3.45M     |
 | L1 load misses | 24.7M     | 17.4M | **16.5M** |
 
-#### Insight
+#### Observations
 
 * `std::map` surprisingly has fewer *total* cache misses due to:
 
@@ -585,7 +586,7 @@ Bitmap latency remains stable and effectively independent of distribution.
 | ------------- | ----- | ----- | ------ |
 | Branch misses | 10.9M | 5.28M | 5.51M  |
 
-#### Insight
+#### Observations
 
 * Flat array:
 
@@ -598,7 +599,7 @@ Bitmap latency remains stable and effectively independent of distribution.
 ---
 <br>
 
-# Order Producer Parameters
+# 5. Order Producer Parameters
 
 The order generator simulates realistic market microstructure using five parameter groups:
 
@@ -891,7 +892,37 @@ p_cancel = 0.3;
 ---
 <br>
 
-# Usage
+# 6. Setup & Build
+
+**Dependencies:**
+
+* C++20 compatible compiler
+* CMake 3.15+
+* Ninja
+* Linux `perf` tools
+
+### Build Instructions:
+
+```bash
+git clone https://github.com/leonschoi/Limit_Order_Book.git
+cd Limit_Order_book
+
+# Configure
+cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug
+
+# Build
+cmake --build build
+
+# Run
+./build/LimitOrderBook
+```
+
+Debug mode is used to better observe the difference between flat array and bitmap.
+
+---
+<br>
+
+# 7. Usage
 
 Run the Limit Order Book benchmark from the build directory:
 
@@ -905,7 +936,7 @@ Run the Limit Order Book benchmark from the build directory:
 
 | Option        | Values                           | Default               | Description                    |
 | ------------- | -------------------------------- | --------------------- | ------------------------------ |
-| `--type`      | `assoc`, `flat`,<br>`bitmap`, `all` | `all`                 | Implementation to run          |
+| `--type`      | `assoc`, `flat`, `bitmap`, `all` | `all`                 | Implementation to run          |
 | `--producers` | `<num>`                          | `4`                   | Number of producer threads     |
 | `--messages`  | `<num>`                          | `1,000,000`           | Number of messages to generate |
 | `--pin`       | `true`, `false`                  | `true`                | Pin threads to CPU cores       |
@@ -943,21 +974,22 @@ Run bitmap version with tuned workload:
 ```bash
 ./build/LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
 ```
-
 ---
 
-## Tip
+## Benchmarking:
 
-You can combine flags freely. For example:
 
+**perf stat**
 ```bash
-./build/LimitOrderBook --type assoc --producers 8 --messages 500000 --pin false
+perf stat -e cycles,instructions,cache-references,cache-misses,LLC-load-misses,branch-misses \
+./build/LimitOrderBook --type ring 
 ```
+
 
 ---
 <br>
 
-# Files
+# 8. Files
 ## Matching Engines
 - `include/MatchingEngine_assoc_container.h`
 - `include/MatchingEngine_flat_array.h`

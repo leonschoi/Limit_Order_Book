@@ -8,29 +8,26 @@
 
 using namespace std;
 
-/*
-Main
+template<typename Q, typename MatchingEngine>
+void run(const string& name, const BenchmarkConfig& cfg);
 
+/*
 Usage:
     ./build/LimitOrderBook [options]
 
 Options:
-    --type assoc | flat | bitmap | all  (default: all)
-        - assoc : map + unordered_map
-        - flat  : flat array with direct index (no hashing)
-        - bitmap: flat array + bitmap for price discovery (best bid/ask)
-        - all   : run all three implementations sequentially
-    --producers   <num>                           (default: 4)
-    --messages    <num>                           (default: 1'000'000)
-    --pin         true | false                    (default: true)
-    --mid_price   <num>                           (default: 2'000)
-    --max_price   <num>                           (default: 4'000)
-    --pool_size   <num>                           (default: QUEUE_CAPACITY * 10)
+    --type        assoc | flat | bitmap | all   (default: all)
+    --producers   <num>                         (default: 4)
+    --messages    <num>                         (default: 1'000'000)
+    --pin         true | false                  (default: true)
+    --mid_price   <num>                         (default: 2'000)
+    --max_price   <num>                         (default: 4'000)
+    --pool_size   <num>                         (default: QUEUE_CAPACITY * 10)
 
 Example:
-    ./LimitOrderBook --type all
-    ./LimitOrderBook --type flat --mid_price 2000 --max_price 4000
-    ./LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
+    ./build/LimitOrderBook --type all
+    ./build/LimitOrderBook --type flat --mid_price 2000 --max_price 4000
+    ./build/LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
 
 */
 int main(int argc, char** argv) {
@@ -51,64 +48,60 @@ int main(int argc, char** argv) {
 
     using Q = MPSC_bounded_ring<Message, QUEUE_CAPACITY>;
 
+    if (cfg.type == "assoc") {
+        using MatchingEngine = MatchingEngine_assoc_container<Q>;
 
-    cout << boolalpha;
-    cout.imbue(std::locale("en_US.UTF-8"));
- 
-    bool flag = false;
-
-    if (cfg.type == "assoc" || cfg.type == "all") {
-        cout << "=====================================" << endl;
-        cout << "Running:   " << "LimitOrderBook associative container implementation" << endl;
-        cout << "Producers: " << cfg.producers << endl;
-        cout << "Messages:  " << cfg.messages << endl;
-        cout << "Pinning:   " << cfg.pin_threads << endl;
-        cout << "Mid price: " << cfg.mid_price << endl;
-        cout << "Max price: " << cfg.max_price << endl;
-
-        Q queue;
-        OrderProducer<Q> producer(queue, cfg);
-        MatchingEngine_assoc_container<Q> engine(queue, cfg);
-        run_benchmark(producer, engine, cfg);
-        flag = true;
-        cout << "=====================================" << endl << endl;
+        run<Q, MatchingEngine>("LimitOrderBook associative container implementation", cfg);
     }
-    if (cfg.type == "flat" || cfg.type == "all") {
-        cout << "=====================================" << endl;
-        cout << "Running:   " << "LimitOrderBook flat array implementation" << endl;
-        cout << "Producers: " << cfg.producers << endl;
-        cout << "Messages:  " << cfg.messages << endl;
-        cout << "Pinning:   " << cfg.pin_threads << endl;
-        cout << "Mid price: " << cfg.mid_price << endl;
-        cout << "Max price: " << cfg.max_price << endl;
+    else if (cfg.type == "flat") {
+        using MatchingEngine = MatchingEngine_flat_array<Q>;
 
-        Q queue;
-        OrderProducer<Q> producer(queue, cfg);
-        MatchingEngine_flat_array<Q> engine(queue, cfg);
-        run_benchmark(producer, engine, cfg);
-        flag = true;
-        cout << "=====================================" << endl << endl;
+        run<Q, MatchingEngine>("LimitOrderBook flat array implementation", cfg);
     }
-    if (cfg.type == "bitmap" || cfg.type == "all") {
-        cout << "=====================================" << endl;
-        cout << "Running:   " << "LimitOrderBook bitmap implementation" << endl;
-        cout << "Producers: " << cfg.producers << endl;
-        cout << "Messages:  " << cfg.messages << endl;
-        cout << "Pinning:   " << cfg.pin_threads << endl;
-        cout << "Mid price: " << cfg.mid_price << endl;
-        cout << "Max price: " << cfg.max_price << endl;
+    else if (cfg.type == "bitmap") {
+        using MatchingEngine = MatchingEngine_bitmap<Q>;
+        
+        run<Q, MatchingEngine>("LimitOrderBook bitmap implementation", cfg);
+    }
+    else if (cfg.type == "all") {
+        using MatchingEngine_a = MatchingEngine_assoc_container<Q>;
+        run<Q, MatchingEngine_a>("LimitOrderBook associative container implementation", cfg);
 
-        Q queue;
-        OrderProducer<Q> producer(queue, cfg);
-        MatchingEngine_bitmap<Q> engine(queue, cfg);
-        run_benchmark(producer, engine, cfg);
-        flag = true;
-        cout << "=====================================" << endl << endl;
+        using MatchingEngine_f = MatchingEngine_flat_array<Q>;
+        run<Q, MatchingEngine_f>("LimitOrderBook flat array implementation", cfg);
+
+        using MatchingEngine_b = MatchingEngine_bitmap<Q>;
+        run<Q, MatchingEngine_b>("LimitOrderBook bitmap implementation", cfg);
     }
-    if (!flag) {
+    else {
         cerr << "Invalid type: " << cfg.type << endl;
+        cerr << "Usage:\n";
+        cerr << "  ./build/LimitOrderBook --type [assoc|flat|bitmap|all] --producers [num] --messages [num] --pin [true|false]\n";
         return 1;
     }    
 
     return 0;
+}
+
+// Runner for benchmarks based on command line args
+template<typename Q, typename MatchingEngine>
+void run(const string& name, const BenchmarkConfig& cfg)
+{
+    cout << boolalpha;
+    cout.imbue(std::locale("en_US.UTF-8"));
+    cout << "=====================================" << endl;
+    cout << "Running:   " << name << endl;
+    cout << "Producers: " << cfg.producers << endl;
+    cout << "Messages:  " << cfg.messages << endl;
+    cout << "Pinning:   " << cfg.pin_threads << endl;
+    cout << "Mid price: " << cfg.mid_price << endl;
+    cout << "Max price: " << cfg.max_price << endl;
+    cout << endl;
+
+    Q queue;
+    OrderProducer<Q> producer(queue, cfg);
+    MatchingEngine engine(queue, cfg);
+    run_benchmark(producer, engine, cfg);
+    
+    cout << "=====================================" << endl << endl;
 }
