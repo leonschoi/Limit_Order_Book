@@ -928,19 +928,19 @@ Run the Limit Order Book benchmark from the build directory:
 Run all implementations:
 
 ```bash
-./LimitOrderBook --type all
+./build/LimitOrderBook --type all
 ```
 
 Run flat implementation with custom price range:
 
 ```bash
-./LimitOrderBook --type flat --mid_price 1000 --max_price 2000
+./build/LimitOrderBook --type flat --mid_price 1000 --max_price 2000
 ```
 
 Run bitmap version with tuned workload:
 
 ```bash
-./LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
+./build/LimitOrderBook --type bitmap --producers 4 --messages 10000 --pin true
 ```
 
 ---
@@ -950,7 +950,7 @@ Run bitmap version with tuned workload:
 You can combine flags freely. For example:
 
 ```bash
-./LimitOrderBook --type assoc --producers 8 --messages 500000 --pin false
+./build/LimitOrderBook --type assoc --producers 8 --messages 500000 --pin false
 ```
 
 ---
